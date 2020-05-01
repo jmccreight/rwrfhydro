@@ -167,6 +167,7 @@ WtTimeChunks <- function(
 
     chunk_list <- list()
     the_chunks <- unique(input_data$chunk)
+
     for(cc in 1:length(the_chunks)) {
       input_chunk <- subset(input_data, chunk == the_chunks[cc])
       obs_for_wt <- cbind(1:nrow(input_chunk), input_chunk[[obs_name]])
@@ -192,9 +193,8 @@ WtTimeChunks <- function(
           })
 
         chunk_list[[cc]] <- result
-        #if(!is.na(result)) {
-        chunk_list[[cc]]$chunk <- chunk_list[[cc]]$t * 0 + cc
-        #}
+        if(class(result) == 'biwavelet') {
+          chunk_list[[cc]]$chunk <- chunk_list[[cc]]$t * 0 + cc }
 
       } else {
 
@@ -219,9 +219,8 @@ WtTimeChunks <- function(
         })
 
         chunk_list[[cc]] <- result
-        #if(!is.na(result)) {
-        chunk_list[[cc]]$chunk <- chunk_list[[cc]]$t * 0 + cc
-        #}
+        if(class(result) == 'biwavelet') {
+          chunk_list[[cc]]$chunk <- chunk_list[[cc]]$t * 0 + cc }
 
       }
     }
@@ -346,6 +345,7 @@ WtEventTiming <- function(POSIXct, obs,
     ## Observed timeseries is just one.
     wt_obs <- WtTimeChunks(input_data, obs_name='obs', max.scale=max.scale,
                            rm_chunks_warn=rm_chunks_warn, rm_chunks_error=rm_chunks_error)
+
     class(wt_obs) <- c("wavelet_timing", class(wt_obs))
     n_period <- length(wt_obs$period)
 
@@ -383,9 +383,15 @@ WtEventTiming <- function(POSIXct, obs,
 
     model_chunks = get_model_intersect_chunks(wt_mod)
     xwt_chunks = get_model_intersect_chunks(xwts)
-    
-    combined_intersect = intersect(
-      intersect(obs_chunks, model_chunks$intersection), xwt_chunks$intersection)
+
+    combined_intersect = obs_chunks
+    if(!is.null(model_chunks$intersection)) {
+      combined_intersect = intersect(
+        combined_intersect, model_chunks$intersection) }
+    if(!is.null(xwt_chunks$intersection)) {
+      combined_intersect = intersect(
+        combined_intersect, xwt_chunks$intersection) }
+
     combined_union = union(
       union(obs_chunks, model_chunks$union), xwt_chunks$union)
 
@@ -411,7 +417,7 @@ WtEventTiming <- function(POSIXct, obs,
 
     ## -------------------------------------------------------
     ## Observed stats
-    ## Put the obs in the output data 
+    ## Put the obs in the output data
     output[['obs']] = list(wt = wt_obs)
 
     ## The masks
